@@ -140,11 +140,11 @@ public class Parser {
         throw new QuitParseException(errorMessage);
     }
     
-    private boolean expect(nonterminal nt)
+    private boolean expect(NonTerminal nt)
     {
         if (accept(nt))
             return true;
-        string errormessage = reportsyntaxerror(nt);
+        String errorMessage = reportSyntaxError(nt);
         throw new QuitParseException(errorMessage);
         //return false;
     }
@@ -169,12 +169,46 @@ public class Parser {
     }
 
     
- // Error Reporting ==========================================
+
+ // Grammar Rule Reporting ==========================================
+    private int parseTreeRecursionDepth = 0;
+    private StringBuffer parseTreeBuffer = new StringBuffer();
+
+    public void enterRule(NonTerminal nonTerminal) {
+        String lineData = new String();
+        for(int i = 0; i < parseTreeRecursionDepth; i++)
+        {
+            lineData += "  ";
+        }
+        lineData += nonTerminal.name();
+        //System.out.println("descending " + lineData);
+        parseTreeBuffer.append(lineData + "\n");
+        parseTreeRecursionDepth++;
+    }
+    
+    private void exitRule(NonTerminal nonTerminal)
+    {
+        parseTreeRecursionDepth--;
+    }
+    
+    public String parseTreeReport()
+    {
+        return parseTreeBuffer.toString();
+    }
+    
+    // Error Reporting ==========================================
     private StringBuffer errorBuffer = new StringBuffer();
          
     private String reportSyntaxError(Token.Kind kind)
     {
         String message = "SyntaxError(" + lineNumber() + "," + charPosition() + ")[Expected " + kind + " but got " + currentToken.kind + ".]";
+        errorBuffer.append(message + "\n");
+        return message;
+    }
+    
+    private String reportSyntaxError(NonTerminal nt)
+    {
+        String message = "SyntaxError(" + lineNumber() + "," + charPosition() + ")[Expected a token from " + nt.name() + " but got " + currentToken.kind + ".]";
         errorBuffer.append(message + "\n");
         return message;
     }
@@ -208,16 +242,6 @@ public class Parser {
     }
     
     
- // Grammar Rule Reporting ==========================================
-    private StringBuffer parseTreeBuffer = new StringBuffer();
-
-
-    public String parseTreeReport()
-    {
-        return parseTreeBuffer.toString();
-    }
-    
-    
  
  // Grammar Rules =====================================================
     
@@ -228,33 +252,28 @@ public class Parser {
         enterRule(NonTerminal.LITERAL);
         
         Token tok = expectRetrieve(NonTerminal.LITERAL);
-        Expression expr = Command.newLiteral(tok);
+        expr = Command.newLiteral(tok);
         
         exitRule(NonTerminal.LITERAL);
         return expr;
     }
     
-//  literal := INTEGER | FLOAT | TRUE | FALSE .
-// public void literal()
-// { 	
-// 	if(have(Token.Kind.INTEGER))
-// 		expect(Token.Kind.INTEGER);
-// 	else if(have(Token.Kind.FLOAT))
-// 		expect(Token.Kind.FLOAT);
-// 	else if(have(Token.Kind.TRUE))
-// 		expect(Token.Kind.TRUE);
-// 	else if(have(Token.Kind.FALSE))
-// 		expect(Token.Kind.FALSE);
-// }
- 
 //  designator := IDENTIFIER { "[" expression0 "]" } .
  public ast.Expression designator()
  {
-     tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+	 ast.Expression expr;
+	 enterRule(NonTerminal.DESIGNATOR);
+	 
+	 Token tok = expectRetrieve(Token.Kind.IDENTIFIER);
+	 expr = Command.newLiteral(tok);
+     tryResolveSymbol(tok);
      while (accept(Token.Kind.OPEN_BRACKET)) {
          expression0();
          expect(Token.Kind.CLOSE_BRACKET);
      }
+     
+     exitRule(NonTerminal.DESIGNATOR);
+     return expr;
  }
  
 // type := IDENTIFIER .
@@ -420,12 +439,39 @@ public class Parser {
 // variable-declaration := "var" IDENTIFIER ":" type ";"
  public ast.VariableDeclaration variable_declaration()
  {
- 	expect(Token.Kind.VAR);
- 	tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
- 	expect(Token.Kind.COLON);
- 	type();
- 	expect(Token.Kind.SEMICOLON);
+	 ast.VariableDeclaration vari;
+	 enterRule(NonTerminal.VARIABLE_DECLARATION);
+	 
+	 Token tok = expectRetrieve(Token.Kind.VAR);
+//	 vari = ast.VariableDeclaration
+	 // LEFT OFF HERE
+	 tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+	 expect(Token.Kind.COLON);
+	 type();
+	 expect(Token.Kind.SEMICOLON);
+	 
+	 exitRule(NonTerminal.VARIABLE_DECLARATION);
+	 
+	 
 }
+ 
+ 
+ public ast.Expression designator()
+ {
+	 ast.Expression expr;
+	 enterRule(NonTerminal.DESIGNATOR);
+	 
+	 Token tok = expectRetrieve(Token.Kind.IDENTIFIER);
+	 expr = Command.newLiteral(tok);
+     tryResolveSymbol(tok);
+     while (accept(Token.Kind.OPEN_BRACKET)) {
+         expression0();
+         expect(Token.Kind.CLOSE_BRACKET);
+     }
+     
+     exitRule(NonTerminal.DESIGNATOR);
+     return expr;
+ }
  
 // array-declaration := "array" IDENTIFIER ":" type "[" INTEGER "]" { "[" INTEGER "]" } ";"
  public void array_declaration()
