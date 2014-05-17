@@ -128,6 +128,11 @@ public enum NonTerminal {
 //            throw new RuntimeException("implement this");
         	add(Token.Kind.FUNC);
         }}),
+    FUNCTION_DECLARATION(new HashSet<Token.Kind>() {
+       private static final long serialVersionUID = 1L;
+       {
+    		add(Token.Kind.FUNC);
+       }}),
     DECLARATION(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
         {

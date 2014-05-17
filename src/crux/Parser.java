@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Stack;
 
 import ast.Command;
-import ast.Index;
 
 public class Parser {
     public static String studentName = "Kevin Hernandez";
@@ -34,7 +33,7 @@ public class Parser {
             return program();
         } catch (QuitParseException q) {
         	return new ast.Error(lineNumber(), charPosition(), "Could not complete parsing.");
-        }
+        } 	
     }
     
 // SymbolTable Management ==========================
@@ -43,16 +42,11 @@ private SymbolTable symbolTable;
     private void initSymbolTable()
     {
         symbolTable = new SymbolTable();
-        Symbol s = symbolTable.insert("readInt");
-        
+        Symbol s = symbolTable.insert("readInt");     
         s = symbolTable.insert("readFloat");
-        
         s = symbolTable.insert("printBool");
-        
         s = symbolTable.insert("printInt");
-        
         s = symbolTable.insert("printFloat");
-        
         s = symbolTable.insert("println");
     }
     
@@ -73,7 +67,7 @@ private SymbolTable symbolTable;
         try {
             return symbolTable.lookup(name);
         } catch (SymbolNotFoundError e) {
-            String message = reportResolveSymbolError(name, ident.lineNumber(), ident.charPosition());
+        	String message = reportResolveSymbolError(name, ident.lineNumber(), ident.charPosition());
             return new ErrorSymbol(message);
         }
     }
@@ -395,14 +389,11 @@ public Token op2()
 	enterRule(NonTerminal.CALL_EXPRESSION);
 	int linNum = lineNumber();
 	int charPos = charPosition();
-	 
 	expect(Token.Kind.CALL);
  	Symbol sym = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
-
  	expect(Token.Kind.OPEN_PAREN);
  	ast.ExpressionList elist = expression_list();
  	expect(Token.Kind.CLOSE_PAREN);
- 	
  	exitRule(NonTerminal.CALL_EXPRESSION);
  	
  	return new ast.Call(linNum, charPos, sym, elist);
@@ -413,7 +404,7 @@ public Token op2()
  {
 	 ast.ExpressionList result = new ast.ExpressionList(lineNumber(), charPosition());
 	 
- 	if(have(NonTerminal.EXPRESSION0))
+ 	if(have(NonTerminal.EXPRESSION0))	
  	{
  		result.add(expression0());
  		while(accept(Token.Kind.COMMA))
@@ -525,21 +516,24 @@ public Token op2()
 // function-definition := "func" IDENTIFIER "(" parameter-list ")" ":" type statement-block .
  public ast.FunctionDefinition function_definition()
  {
+	 enterRule(NonTerminal.FUNCTION_DECLARATION);
 	 int lineNum =  lineNumber();
-	 	int charPos = charPosition();
- 	expect(Token.Kind.FUNC);
+	 int charPos = charPosition();
+	 expect(Token.Kind.FUNC);
 
- 	Symbol temp = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+	 Symbol temp = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
 
- 	expect(Token.Kind.OPEN_PAREN);
- 	enterScope();
- 	ArrayList<Symbol> tempList = parameter_list();
- 	expect(Token.Kind.CLOSE_PAREN);
- 	expect(Token.Kind.COLON);
- 	type();
- 	ast.StatementList body = statement_block();
+	 expect(Token.Kind.OPEN_PAREN);
+	 enterScope();
+	 ArrayList<Symbol> tempList = parameter_list();
+	 expect(Token.Kind.CLOSE_PAREN);
+	 expect(Token.Kind.COLON);
+	 type();
+	 
+	 ast.StatementList body = statement_block();
+	 exitRule(NonTerminal.FUNCTION_DECLARATION);
  	
- 	return new ast.FunctionDefinition(lineNum, charPos, temp, tempList, body);
+	 return new ast.FunctionDefinition(lineNum, charPos, temp, tempList, body);
 }
  
 // declaration := variable-declaration | array-declaration | function-definition .
@@ -554,7 +548,7 @@ public Token op2()
  	{
  		result = array_declaration();
  	}
- 	else if(have(NonTerminal.FUNCTION_DEFINITION))
+ 	else if(have(NonTerminal.FUNCTION_DECLARATION))
  	{
  		result = function_definition();
  	}
@@ -687,23 +681,27 @@ public Token op2()
 // statement-list := { statement } .
  public ast.StatementList statement_list()
  {
+	 enterRule(NonTerminal.STATEMENT_LIST);
 	 ast.StatementList list = new ast.StatementList(lineNumber(), charPosition());
  	while(have(NonTerminal.STATEMENT))
  	{
  		list.add(statement());	
   	}
- 	
+ 	 exitRule(NonTerminal.STATEMENT_LIST);
  	return list;
  }
  
 // statement-block := "{" statement-list "}" .
  public ast.StatementList statement_block()
  {
+     enterRule(NonTerminal.STATEMENT_BLOCK);
+
 	 ast.StatementList result;
  	expect(Token.Kind.OPEN_BRACE); 
  	result = statement_list();
  	expect(Token.Kind.CLOSE_BRACE);
- 	exitScope();
+ 	exitRule(NonTerminal.STATEMENT_BLOCK);
+
  	return result;
  }
  
