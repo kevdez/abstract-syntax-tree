@@ -1,10 +1,13 @@
+// The grammars on this file are written in Wirth notation
+// http://en.wikipedia.org/wiki/Wirth_syntax_notation
+// {} mean 0 or more copies
+// [] means optional, either it's there or it isn't
+
 package crux;
 
 import java.util.ArrayList;
-
-import crux.Token.Kind;
+import java.util.Stack;
 import ast.Command;
-import ast.Expression;
 
 public class Parser {
     public static String studentName = "Kevin Hernandez";
@@ -265,130 +268,85 @@ public class Parser {
  
 // op0 := ">=" | "<=" | "!=" | "==" | ">" | "<" .
  public Token op0()
- { 	
-	 Token tok = null;
- 	if(have(Token.Kind.GREATER_EQUAL))
- 		tok = expectRetrieve(Token.Kind.GREATER_EQUAL);
- 	else if(have(Token.Kind.LESSER_EQUAL))
- 		tok = expectRetrieve(Token.Kind.LESSER_EQUAL);
- 	else if(have(Token.Kind.NOT_EQUAL))
- 		tok = expectRetrieve(Token.Kind.NOT_EQUAL);
- 	else if(have(Token.Kind.EQUAL))
- 		tok = expectRetrieve(Token.Kind.EQUAL);
- 	else if(have(Token.Kind.GREATER_THAN))
- 		tok = expectRetrieve(Token.Kind.GREATER_THAN);
- 	else if(have(Token.Kind.LESS_THAN))
- 		tok = expectRetrieve(Token.Kind.LESS_THAN);
- 	return tok;
- }
- 
-// op1 := "+" | "-" | "or" .
- public Token op1()
- { 	
-//	 ast.Expression result;
-//	 int lin = lineNumber();
-//	 int cha = charPosition();
-	 Token tok = null;
- 	if(have(Token.Kind.ADD))
- 	{
- 		tok = expectRetrieve(Token.Kind.ADD);
- 	}
- 	else if(have(Token.Kind.SUB))
- 	{
- 		tok = expectRetrieve(Token.Kind.SUB);
- 	}
- 	else if(have(Token.Kind.OR))
- 	{
- 		tok = expectRetrieve(Token.Kind.OR);
- 	}
- 	
- 	return tok;
- }
- 
-// op2 := "*" | "/" | "and" .
- public Token op2()
  {
-	 Token tok = null;
- 	if(have(Token.Kind.MUL))
- 		tok = expectRetrieve(Token.Kind.MUL);
- 	else if(have(Token.Kind.DIV))
- 		tok = expectRetrieve(Token.Kind.DIV);
- 	else if(have(Token.Kind.AND))
- 		tok = expectRetrieve(Token.Kind.AND);
- 	return tok;
-	
+     enterRule(NonTerminal.OP0);
+     Token tok = expectRetrieve(NonTerminal.OP0);
+     exitRule(NonTerminal.OP0);
+     return tok;
  }
-
+ 
 // expression0 := expression1 [ op0 expression1 ] .
  public ast.Expression expression0()
  {	
 	 ast.Expression leftSide;
 	 leftSide = expression1();
- 	while (have(NonTerminal.OP0))
+ 	if (have(NonTerminal.OP0))
  	{
  		Token tok = op0();
- 		ast.Expression rightSide=null;
- 		if(have(NonTerminal.EXPRESSION1))
- 			rightSide = expression1();
+ 		ast.Expression rightSide = expression1();
  		return Command.newExpression(leftSide, tok, rightSide);
  	}
- 	
  	return leftSide;
- 	
 }
  
+//op1 := "+" | "-" | "or" .
+ public Token op1()
+{
+	 enterRule(NonTerminal.OP1);
+	 Token tok = expectRetrieve(NonTerminal.OP1);
+	 exitRule(NonTerminal.OP1);
+	 return tok;
+}
+
 // expression1 := expression2 { op1  expression2 } .
  public ast.Expression expression1()
  {	
-	 ast.Expression leftSide;
-	 leftSide = expression2();
- 	while (have(NonTerminal.OP1))
+	ArrayList<ast.Expression> expressions = new ArrayList<ast.Expression>();
+	ArrayList<Token> tokens = new ArrayList<Token>();
+	
+	expressions.add(expression2());
+	while(have(NonTerminal.OP1))
  	{
- 		Token tok = op1();
- 		ast.Expression rightSide=null;
- 		if(have(NonTerminal.EXPRESSION2))
- 			rightSide = expression2();
- 		return Command.newExpression(leftSide, tok, rightSide);
+ 		tokens.add(op1());
+ 		expressions.add(expression2());
  	}
- 	return leftSide;
+ 	
+	ast.Expression temp = expressions.remove(0);
+ 	while(!expressions.isEmpty())
+ 	{
+ 		temp = Command.newExpression(temp, tokens.remove(0), expressions.remove(0));
+ 	}
+ 	return temp;
  }
  
+//op2 := "*" | "/" | "and" .
+public Token op2()
+{
+   enterRule(NonTerminal.OP2);
+   Token tok = expectRetrieve(NonTerminal.OP2);
+   exitRule(NonTerminal.OP2);
+   return tok;
+}
+
 // expression2 := expression3 { op2 expression3 } .
  public ast.Expression expression2()
- {	
-	 int lin = lineNumber();
-	 int cha = charPosition();
-	 ast.Expression leftSide;
-	 leftSide = expression3();
-//	 ast.Expression rightSide = null;
-	 Token tok = null;
-
+ {
+	 ArrayList<ast.Expression> expressions = new ArrayList<ast.Expression>();
+	 ArrayList<Token> tokens = new ArrayList<Token>();
+		
+	 expressions.add(expression3());
 	 while (have(NonTerminal.OP2)) 
 	 {
- 		tok = op2();
- 		
- 		if(have(NonTerminal.EXPRESSION3))
- 		{
- 			if(tok.is(Kind.MUL))
- 	 		{
- 	 			return new ast.Multiplication(lin, cha, leftSide, expression3());
- 	 		}
- 	 		else if(tok.is(Kind.DIV))
- 	 		{
- 	 			return new ast.Division(lin, cha, leftSide, expression3());
- 	 		}
- 	 		else if(tok.is(Kind.AND))
- 	 		{
- 	 			return new ast.LogicalAnd(lin, cha, leftSide, expression3());
- 	 		}
- 		}
- 		//return Command.newExpression(leftSide, tok, rightSide);
+ 		tokens.add(op2());
+ 		expressions.add(expression3());
 	 }
-// 	if(hasOP2)
-// 		return Command.newExpression(leftSide, tok, rightSide);
- 
- 	return leftSide;
-
+	 
+	 ast.Expression temp = expressions.remove(0);
+	 while(!expressions.isEmpty())
+	 {
+	 	temp = Command.newExpression(temp, tokens.remove(0), expressions.remove(0));
+	 }
+	 return temp;
  }
  
 // expression3 := "not" expression3
@@ -407,23 +365,28 @@ public class Parser {
  		result = new ast.LogicalNot(lin, cha, expression3());
  	}
  	else if(have(Token.Kind.OPEN_PAREN))
+   	{
+   		accept(Token.Kind.OPEN_PAREN);
+   		result = expression0();
+   		expect(Token.Kind.CLOSE_PAREN);
+   	}
+ 	else if (have(NonTerminal.DESIGNATOR)) 
  	{
- 		accept(Token.Kind.OPEN_PAREN);
- 		result = expression0();
- 		expect(Token.Kind.CLOSE_PAREN);
- 	}
- 	else if (have(NonTerminal.DESIGNATOR))
+        result = designator();
+    } 
+ 	else if (have(NonTerminal.CALL_EXPRESSION)) 
  	{
- 		result = designator();
- 	}
- 	else if (have(NonTerminal.CALL_EXPRESSION))
+        result = call_expression();
+    } 
+ 	else if (have(NonTerminal.LITERAL)) 
  	{
- 		result = call_expression();
- 	}
- 	else if (have(NonTerminal.LITERAL))
+        result = literal();
+    } 
+ 	else
  	{
- 		result = literal();
- 	}
+//        String message = 
+        		reportSyntaxError(NonTerminal.EXPRESSION3);
+    }
  	return result;
  }
  
@@ -510,12 +473,16 @@ public class Parser {
 // designator := IDENTIFIER { "[" expression0 "]" } .
  public ast.Expression designator()
  {
-	 ast.Expression expr;
 	 enterRule(NonTerminal.DESIGNATOR);
 	 
-	 Token tok = expectRetrieve(Token.Kind.IDENTIFIER);
-	 expr = Command.newLiteral(tok);
-     tryResolveSymbol(tok);
+	 ast.Expression expr;
+	 int lineNum = lineNumber();
+     int charPos = charPosition();
+     
+	 Symbol sym = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+     ast.AddressOf addr = new ast.AddressOf(lineNum, charPos, sym);
+	 expr = new ast.Dereference(lineNum, charPos, addr);
+	 
      while (accept(Token.Kind.OPEN_BRACKET)) {
          expression0();
          expect(Token.Kind.CLOSE_BRACKET);
@@ -525,14 +492,16 @@ public class Parser {
      return expr;
  }
  
+ 
 // array-declaration := "array" IDENTIFIER ":" type "[" INTEGER "]" { "[" INTEGER "]" } ";"
  public ast.ArrayDeclaration array_declaration()
  {
 	 ast.ArrayDeclaration result;
-	 
+	 int lin = lineNumber();
+	 int cha = charPosition();
  	expect(Token.Kind.ARRAY);
  	
- 	result = new ast.ArrayDeclaration(this.lineNumber(), this.charPosition(), tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER)));
+ 	result = new ast.ArrayDeclaration(lin,cha, tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER)));
  	
  	expect(Token.Kind.COLON);
  	type();
