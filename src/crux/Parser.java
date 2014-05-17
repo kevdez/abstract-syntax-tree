@@ -7,7 +7,9 @@ package crux;
 
 import java.util.ArrayList;
 import java.util.Stack;
+
 import ast.Command;
+import ast.Index;
 
 public class Parser {
     public static String studentName = "Kevin Hernandez";
@@ -36,40 +38,38 @@ public class Parser {
     }
     
 // SymbolTable Management ==========================
-    private SymbolTable symbolTable;
-
+private SymbolTable symbolTable;
+    
     private void initSymbolTable()
     {
-    	this.symbolTable = new SymbolTable();
-    	this.symbolTable.setDepth(0);
-    	this.symbolTable.insert("readInt");
-    	this.symbolTable.insert("readFloat");
-    	this.symbolTable.insert("printBool");
-    	this.symbolTable.insert("printInt");
-    	this.symbolTable.insert("printFloat");
-    	this.symbolTable.insert("println");
+        symbolTable = new SymbolTable();
+        Symbol s = symbolTable.insert("readInt");
+        
+        s = symbolTable.insert("readFloat");
+        
+        s = symbolTable.insert("printBool");
+        
+        s = symbolTable.insert("printInt");
+        
+        s = symbolTable.insert("printFloat");
+        
+        s = symbolTable.insert("println");
     }
     
     private void enterScope()
     {
-    	SymbolTable temp = new SymbolTable();
-        
-        temp.setDepth(symbolTable.getDepth() + 1);
-        symbolTable.setChildSymbolTable(temp);
-        temp.setParentSymbolTable(symbolTable);
-        symbolTable = temp;
+        symbolTable = new SymbolTable(symbolTable);
     }
     
     private void exitScope()
     {
-    	if(symbolTable.getParentSymbolTable() != null)
-    		symbolTable = symbolTable.getParentSymbolTable();
+        symbolTable = symbolTable.parentTable();
     }
 
     private Symbol tryResolveSymbol(Token ident)
     {
-        assert(ident.is(Token.Kind.IDENTIFIER));
-        String name = ident.lexeme();
+    	assert(ident.is(Token.Kind.IDENTIFIER));
+    	String name = ident.lexeme();
         try {
             return symbolTable.lookup(name);
         } catch (SymbolNotFoundError e) {
@@ -88,8 +88,8 @@ public class Parser {
 
     private Symbol tryDeclareSymbol(Token ident)
     {
-        assert(ident.is(Token.Kind.IDENTIFIER));
-        String name = ident.lexeme();
+    	assert(ident.is(Token.Kind.IDENTIFIER));
+    	String name = ident.lexeme();
         try {
             return symbolTable.insert(name);
         } catch (RedeclarationError re) {
@@ -105,7 +105,7 @@ public class Parser {
         errorBuffer.append(symbolTable.toString() + "\n");
         return message;
     }    
-
+      
 // Helper Methods ==========================================
     private boolean have(Token.Kind kind)
     {
@@ -364,9 +364,8 @@ public Token op2()
  		expect(Token.Kind.NOT);
  		result = new ast.LogicalNot(lin, cha, expression3());
  	}
- 	else if(have(Token.Kind.OPEN_PAREN))
+ 	else if(accept(Token.Kind.OPEN_PAREN))
    	{
-   		accept(Token.Kind.OPEN_PAREN);
    		result = expression0();
    		expect(Token.Kind.CLOSE_PAREN);
    	}
@@ -393,15 +392,18 @@ public Token op2()
 // call-expression := "::" IDENTIFIER "(" expression-list ")" .
  public ast.Call call_expression()
  {
-	 int linNum = lineNumber();
-	 int charPos = charPosition();
+	enterRule(NonTerminal.CALL_EXPRESSION);
+	int linNum = lineNumber();
+	int charPos = charPosition();
+	 
 	expect(Token.Kind.CALL);
  	Symbol sym = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
 
- 	
  	expect(Token.Kind.OPEN_PAREN);
  	ast.ExpressionList elist = expression_list();
  	expect(Token.Kind.CLOSE_PAREN);
+ 	
+ 	exitRule(NonTerminal.CALL_EXPRESSION);
  	
  	return new ast.Call(linNum, charPos, sym, elist);
  }
@@ -475,21 +477,23 @@ public Token op2()
  {
 	 enterRule(NonTerminal.DESIGNATOR);
 	 
-	 ast.Expression expr;
 	 int lineNum = lineNumber();
      int charPos = charPosition();
      
 	 Symbol sym = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
      ast.AddressOf addr = new ast.AddressOf(lineNum, charPos, sym);
-	 expr = new ast.Dereference(lineNum, charPos, addr);
-	 
-     while (accept(Token.Kind.OPEN_BRACKET)) {
-         expression0();
+     Stack<ast.Expression> indices = new Stack<ast.Expression>();
+	 indices.add(addr);
+	 ast.Expression ind = addr;
+     while (accept(Token.Kind.OPEN_BRACKET)) 
+     {
+         ind = new ast.Index(lineNumber(), charPosition(), ind, expression0());
          expect(Token.Kind.CLOSE_BRACKET);
      }
-     
+ 
      exitRule(NonTerminal.DESIGNATOR);
-     return expr;
+	 
+     return new ast.Dereference(lineNum, charPos, ind);
  }
  
  
@@ -573,7 +577,11 @@ public Token op2()
  {	int lin = lineNumber();
  	int cha = charPosition();
  	expect(Token.Kind.LET);
- 	ast.Expression destination = designator();
+// 	ast.Expression destination = designator();
+ 	int dlin = lineNumber();
+ 	int dcha = charPosition();
+ 	Symbol sym = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+    ast.AddressOf destination = new ast.AddressOf(dlin, dcha, sym);
  	expect(Token.Kind.ASSIGN);
  	ast.Expression source = expression0();
  	expect(Token.Kind.SEMICOLON);
@@ -591,20 +599,28 @@ public Token op2()
  }
  
 // if-statement := "if" expression0 statement-block [ "else" statement-block ] .
- public ast.IfElseBranch if_statement()
+ public ast.Statement if_statement()
  {
+	 enterRule(NonTerminal.IF_STATEMENT);
 	 int lin = lineNumber();
 	 int cha = charPosition();
- 	expect(Token.Kind.IF);
- 	ast.Expression cond = expression0();
- 	enterScope();
- 	ast.StatementList thenBlock = statement_block();
- 	ast.StatementList elseBlock = null;
- 	if(accept(Token.Kind.ELSE))
- 	{
- 		elseBlock = statement_block();
- 	}
- 	return new ast.IfElseBranch(lin, cha, cond, thenBlock, elseBlock);
+	 
+	 expect(Token.Kind.IF);
+	 ast.Expression cond = expression0();
+	 enterScope();
+	 ast.StatementList thenBlock = statement_block();
+	 exitScope();
+	 ast.StatementList elseBlock = new ast.StatementList(lineNumber(), charPosition());
+	 
+	 if(accept(Token.Kind.ELSE))
+	 {
+		 enterScope();
+		 elseBlock = statement_block();
+		 exitScope();
+	 }
+	 exitRule(NonTerminal.IF_STATEMENT);
+ 	
+ 	 return new ast.IfElseBranch(lin, cha, cond, thenBlock, elseBlock);
  }
  
 // while-statement := "while" expression0 statement-block .
@@ -623,8 +639,10 @@ public Token op2()
  public ast.Return return_statement()
  {
 	 ast.Return result;
+	 int lin = lineNumber();
+	 int cha = charPosition();
  	expect(Token.Kind.RETURN);
- 	result = new ast.Return(lineNumber(), charPosition(), expression0());
+ 	result = new ast.Return(lin, cha, expression0());
  	expect(Token.Kind.SEMICOLON);
  	return result;
  }

@@ -16,9 +16,9 @@ public class MYAutoTester {
 	
 
 	public static int testPrivate(){
-		String inputFilename = "tests/test02.crx";
-		String outputFilename = "tests/test02.rea";
-		String expectedFilename = "tests/test02.out";
+		String inputFilename = 		"tests/test05.crx";
+		String outputFilename = 	"tests/test05.rea";
+		String expectedFilename = 	"tests/test05.out";
 		
 		Scanner s = null;
         try {

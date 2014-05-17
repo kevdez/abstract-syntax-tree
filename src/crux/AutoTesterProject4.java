@@ -196,19 +196,6 @@ public class AutoTesterProject4 {
 			}
 		}
 		
-		int privatePass = 0;
-		for (int i=1; i<=privateTestcaseNum; ++i){
-			try{
-				if (testPrivate(i) == PASS){
-					++ privatePass;
-				}else{
-					System.out.println("failed:" + i);
-				}
-			}catch (Exception e){
-				e.printStackTrace();
-			}
-			
-		}
 		
 		System.out.print(studentID);
 		System.out.print("\t");
@@ -218,10 +205,6 @@ public class AutoTesterProject4 {
 		System.out.print(publicPass);
 		System.out.print("/");
 		System.out.print(publicTestcaseNum);
-		System.out.print(" Passed Private Cases: ");
-		System.out.print(privatePass);
-		System.out.print("/");
-		System.out.println(privateTestcaseNum);
 		
 	}
 }

@@ -1,130 +1,158 @@
 package crux;
-/**
- * studentName = "Kevin Hernandez";
- * studentID = "90872295";
- * uciNetID = "khernan3";
- */
 
-
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Vector;
+import java.util.Comparator;
 
 public class SymbolTable {
 	
 	private SymbolTable parent;
-	private SymbolTable child;
-	private LinkedHashMap<String,Symbol> map;
+	private Vector<Symbol> table;
 	private int depth;
-    
-    public SymbolTable()
-    {
-        this.parent = null;   
-        this.child = null;
-        map = new LinkedHashMap<String,Symbol>();
-        
-    }
-    
-    public Symbol lookup(String name) throws SymbolNotFoundError
-    {
-    	if(map.containsKey(name))
-    	{
-    		return map.get(name);
-    	}
-    	else if(this.parent != null)
-    	{
-    		return this.parent.lookup(name);
-    	}
-    	else
-    		throw new SymbolNotFoundError(name);
-    }
-       
-    
-    // MAY HAVE TO LOOK AT THIS LATER
-    public Symbol insert(String name) throws RedeclarationError
-    {
-    	Symbol value = new Symbol(name);
-    	if(map.containsKey(name))
-    	{
-    		throw new RedeclarationError(value);
-    	}	
-    	else
-    	{
-    		map.put(name, value);
-    		return map.get(name);
-    	}
-    	
-    }
-    
-    public String toString()
-    {
-        StringBuffer sb = new StringBuffer();
-        if (parent != null)
-            sb.append(parent.toString());
-        
-        String indent = new String();
-        for (int i = 0; i < depth; i++) {
-        	indent += "  ";
-        }
-        
-        for (Symbol s : map.values())
-        {
-            sb.append(indent + s.toString() + "\n");
-        }
-        return sb.toString();
-    }
-    
-    public void setParentSymbolTable(SymbolTable par)
-    {
-    	this.parent = par;
-    }
-    
-    public SymbolTable getParentSymbolTable()
-    {
-    	return this.parent;
-    }
-    
-    public void setChildSymbolTable(SymbolTable chi)
-    {
-    	this.child = chi;
-    }
-    
-    public SymbolTable getChildSymbolTable()
-    {
-    	return this.child;
-    }
-    
-    public void setDepth(int dep)
-    {
-    	this.depth = dep;
-    }
-    
-    public int getDepth()
-    {
-    	return this.depth;
-    }
+
+	public SymbolTable()
+	{
+		this.table = new Vector<Symbol>();
+		this.parent = null;
+		this.depth = 0;
+	}
+	
+	public SymbolTable(SymbolTable parent)
+	{
+		this.table = new Vector<Symbol>();
+		this.parent = parent;
+		this.depth = parent.depth + 1;
+	}
+	
+	public Symbol lookup(String name) throws SymbolNotFoundError
+	{
+		// option 1: Symbols are hashable (hash function of name and type)
+		/*
+		ArrayList<Symbol> matches = new ArrayList<Symbol>();
+		for (Symbol s : table) {
+			if (s.name().equals(name))
+				matches.append(s);
+		}
+		if (matches.isEmpty())
+			return parent.lookup(name);
+		return matches;
+		*/
+			
+		// option 2: can only store one symbol per name
+	    //           no function overloading
+		//           can't have variable and function by same name
+		Symbol sym = get(name);
+		if (sym == null && parent != null)
+			return parent.lookup(name);
+		else if (sym == null) // && parent == null
+			throw new SymbolNotFoundError(name);
+		else
+			return sym;
+	}
+	
+	private Symbol get(String name)
+	{
+		for (Symbol sym : table)
+			if (sym.name().equals(name))
+				return sym;
+		return null;
+	}
+	
+	/*
+	public Symbol lookup(String name, List<type.Type> args)
+	{
+		Symbol sym = table.get(name);
+		if (sym == null)
+			return parent.lookup(name);
+		
+		return sym;
+	}
+	*/
+	
+	public Symbol insert(String name) throws RedeclarationError
+	{
+		assert(name != null);
+		assert(name != "");
+		
+		if (contains(name))
+			throw new RedeclarationError(get(name));
+		Symbol sym = new Symbol(name);
+		table.add(sym);
+		return sym;
+	}
+	
+	private boolean contains(String name)
+	{
+		return null != get(name);
+	}
+	
+	public String toString()
+	{
+		StringBuffer sb = new StringBuffer();
+		if (parent != null)
+			sb.append(parent.toString());
+		
+		String indent = new String();
+		for (int i = 0; i < depth; i++) {
+			indent += "  ";
+		}
+		
+		
+		/* Initially thought the output should be sorted
+		 * But later realized, no; the output of the outer scope
+		 * should list last the function currently being parsed.
+		 * Need to report/store symbols in the order declared.
+		List<Symbol> sorted = new ArrayList<Symbol>();
+		sorted.addAll(table);
+		Collections.sort(sorted, new SymbolComparator());
+		*/
+		for (Symbol s : table)
+		{
+			sb.append(indent + s.toString() + "\n");
+		}
+		return sb.toString();
+	}
+	
+	/*
+	private static class SymbolComparator implements Comparator<Symbol>
+	{
+		@Override
+		public int compare(Symbol s1, Symbol s2) {
+			return s1.name().compareTo(s2.name());
+		}
+	}
+	*/
+	
+	public SymbolTable parentTable()
+	{
+		return parent;
+	}
 }
 
 class SymbolNotFoundError extends Error
 {
-    private static final long serialVersionUID = 1L;
-    private String name;
-    
-    SymbolNotFoundError(String name)
-    {
-        this.name = name;
-    }
-    
-    public String name()
-    {
-        return name;
-    }
+	private static final long serialVersionUID = 1L;
+	private String name;
+	
+	SymbolNotFoundError(String name)
+	{
+		this.name = name;
+	}
+	
+	public String name()
+	{
+		return name;
+	}
 }
 
 class RedeclarationError extends Error
 {
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    public RedeclarationError(Symbol sym)
-    {
-        super("Symbol " + sym + " being redeclared.");
-    }
+	public RedeclarationError(Symbol sym)
+	{
+		super("Symbol " + sym + " being redeclared.");
+	}
 }
