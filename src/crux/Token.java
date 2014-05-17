@@ -363,4 +363,8 @@ public class Token {
 		tok.lexeme = "Unexpected character: " + lex;
 		return tok;
 	}
+
+	public Kind kind() {
+		return this.kind;
+	}
 }
