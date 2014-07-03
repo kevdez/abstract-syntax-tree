@@ -1,8 +1,8 @@
 package crux;
 /**
- * studentName = "Kevin Hernandez";
- * studentID = "90872295";
- * uciNetID = "khernan3";
+ * studentName = "XXXXXXXX XXXXXXXX";
+ * studentID = "XXXXXXXX";
+ * uciNetID = "XXXXXXXX";
  */
 
 

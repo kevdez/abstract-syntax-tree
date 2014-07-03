@@ -11,9 +11,9 @@ import java.util.Stack;
 import ast.Command;
 
 public class Parser {
-    public static String studentName = "Kevin Hernandez";
-    public static String studentID = "90872295";
-    public static String uciNetID = "khernan3";
+    public static String studentName = "XXXXXXXX XXXXXXXX";
+    public static String studentID = "XXXXXXXX";
+    public static String uciNetID = "XXXXXXXX";
     
 // Parser ==========================================
     

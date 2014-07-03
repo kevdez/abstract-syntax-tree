@@ -2,9 +2,9 @@ package crux;
 
 
 /**
- * @author Kevin Hernandez
- *	Student ID: 90872295
- *	UCInetID: khernan3
+ * @author XXXXXXXX XXXXXXXX
+ *	Student ID: XXXXXXXX
+ *	UCInetID: XXXXXXXX
  */
 
 public class Token {
